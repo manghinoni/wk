@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <Transactions>
+    <Transaction>2024/10/24 09:25:19.176,=D:\Projetos\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 09:26:15.317,D:\Projetos\WK\uPedido.dfm=D:\Projetos\Unit1.dfm</Transaction>
+    <Transaction>2024/10/24 09:26:15.317,D:\Projetos\WK\uPedido.pas=D:\Projetos\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 09:26:25.539,D:\Projetos\WK\TesteWK.dproj=D:\Projetos\Project1.dproj</Transaction>
+    <Transaction>2024/10/24 10:20:53.139,=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 10:24:48.600,=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 10:27:08.491,D:\Projetos\WK\uCliente.pas=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 10:49:06.045,=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 10:49:47.724,D:\Projetos\WK\uProduto.pas=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 10:52:06.698,=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 11:11:55.010,D:\Projetos\WK\ufrmPedido.pas=D:\Projetos\WK\uPedido.pas</Transaction>
+    <Transaction>2024/10/24 11:11:55.010,D:\Projetos\WK\ufrmPedido.dfm=D:\Projetos\WK\uPedido.dfm</Transaction>
+    <Transaction>2024/10/24 11:12:23.851,D:\Projetos\WK\uPedido.pas=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 11:16:05.231,=D:\Projetos\WK\Unit1.pas</Transaction>
+    <Transaction>2024/10/24 11:17:08.930,D:\Projetos\WK\uProdutoPedido.pas=D:\Projetos\WK\Unit1.pas</Transaction>
+  </Transactions>
+</BorlandProject>
