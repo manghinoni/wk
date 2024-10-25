@@ -273,6 +273,15 @@ object frmPedido: TfrmPedido
     TabOrder = 8
     OnClick = btnGravarClick
   end
+  object Button1: TButton
+    Left = 87
+    Top = 337
+    Width = 75
+    Height = 25
+    Caption = 'Gravar'
+    TabOrder = 9
+    OnClick = btnGravarClick
+  end
   object fdConexao: TFDConnection
     Params.Strings = (
       'Password=1234'

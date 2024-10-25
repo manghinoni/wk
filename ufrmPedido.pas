@@ -57,6 +57,7 @@ type
     edtValorUnitario: TEdit;
     edtValorTotal: TEdit;
     btnGravar: TButton;
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure edtCodClienteExit(Sender: TObject);
     procedure edtCodProdutoExit(Sender: TObject);
@@ -114,9 +115,11 @@ end;
 
 procedure TfrmPedido.btnGravarClick(Sender: TObject);
 begin
+
   APedido.Numero := StrToInt(edtNumero.Text);
   APedido.Emissao := Now;
   APedido.CodCliente := StrToInt(edtCodCliente.Text);
+  APedido.RecordObject;
 end;
 
 procedure TfrmPedido.btnNovoClick(Sender: TObject);
