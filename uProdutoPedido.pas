@@ -2,7 +2,7 @@ unit uProdutoPedido;
 
 interface
 
-uses FireDAC.Comp.Client, System.SysUtils;
+uses FireDAC.Comp.Client, System.SysUtils, Firedac.Stan.Param;
 
 type
   {$M+}
@@ -30,6 +30,8 @@ type
     public
       function SetObject(AId: integer): boolean;
       procedure ListAllByPedido(APedido: integer; var AQuery: TFDQuery);
+      procedure DeleteAllByPedido(APedido: integer);
+      function RecordObject: boolean;
     published
       constructor Create(AConnection: TFDConnection);
       property ID: integer read FID write SetID;
@@ -59,6 +61,15 @@ begin
   FQuantidade := 0;
 end;
 
+procedure TProdutoPedido.DeleteAllByPedido(APedido: integer);
+begin
+  FSQL.SQL.Clear;
+  FSQL.SQL.Add('delete ');
+  FSQL.SQL.Add('from produtopedido ');
+  FSQL.SQL.Add('where numeropedido = ' + IntToStr(APedido) + ' ');
+  FSQL.ExecSQL;
+end;
+
 procedure TProdutoPedido.ListAllByPedido(APedido: integer; var AQuery: TFDQuery);
 begin
   FSQL.SQL.Clear;
@@ -69,6 +80,48 @@ begin
   FSQL.SQL.Add('order by id ');
   FSQL.Open;
   Aquery := FSQL;
+end;
+
+function TProdutoPedido.RecordObject: boolean;
+begin
+  result := false;
+  FSQL.SQL.Clear;
+  if FId = 0 then
+  begin
+    FSQL.SQL.Add('insert into produtopedido ');
+    FSQL.SQL.Add('(numeropedido, codproduto, quantidade, valorunitario, valortotal) ');
+    FSQL.SQL.Add('values (:numeropedido, :codproduto, :quantidade, :valorunitario, :valortotal) ');
+    FSQL.SQL.Add('returning id ');
+    FSQL.ParamByName('numeropedido').AsInteger := FNumeroPedido;
+    FSQL.ParamByName('codproduto').AsInteger := FCodProduto;
+    FSQL.ParamByName('quantidade').AsCurrency := FQuantidade;
+    FSQL.ParamByName('valorunitario').AsCurrency := FValorUnitario;
+    FSQL.ParamByName('valortotal').AsCurrency := FValorTotal;
+    FSQL.Open;
+    if not FSQL.Eof then
+    begin
+      FId := FSQL.FieldByName('id').AsInteger;
+      Result := true;
+    end;
+  end
+  else
+  begin
+    FSQL.SQL.Add('update produtopedido ');
+    FSQL.SQL.Add('set numeropedido := :numeropedido, ');
+    FSQL.SQL.Add('codproduto := :codproduto, ');
+    FSQL.SQL.Add('quantidade := :quantidade, ');
+    FSQL.SQL.Add('valorunitario := :valorunitario, ');
+    FSQL.SQL.Add('valortotal := :valortotal ');
+    FSQL.SQL.Add('where id = :id ');
+
+    FSQL.ParamByName('numeropedido').AsInteger := FNumeroPedido;
+    FSQL.ParamByName('codproduto').AsInteger := FCodProduto;
+    FSQL.ParamByName('quantidade').AsCurrency := FQuantidade;
+    FSQL.ParamByName('valorunitario').AsCurrency := FValorUnitario;
+    FSQL.ParamByName('valortotal').AsCurrency := FValorTotal;
+    FSQL.ExecSQL;
+  end;
+  FSQL.Close;
 end;
 
 procedure TProdutoPedido.SetCodigoProduto(const Value: integer);
@@ -101,7 +154,9 @@ begin
     FValorUnitario := FSQL.FieldByName('valorunitario').AsCurrency;
     FValorUnitario := FSQL.FieldByName('valortotal').AsCurrency;
     Result := true;
-  end;
+  end
+  else
+    FId := AId;
   FSQL.Close;
 end;
 

@@ -10,7 +10,7 @@ uses
   FireDAC.Phys.MySQL, FireDAC.Phys.MySQLDef, FireDAC.VCLUI.Wait, Data.DB,
   FireDAC.Comp.Client, Vcl.StdCtrls, Vcl.Buttons, Vcl.Grids, FireDAC.Stan.Param,
   FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet,
-  uPedido, Vcl.DBGrids, Vcl.Mask;
+  uPedido, Vcl.DBGrids, Vcl.Mask, System.UITypes;
 
 type
   TAcao = (Nada, Consulta, Alteracao, Inclusao);
@@ -28,7 +28,7 @@ type
     Label4: TLabel;
     edtUF: TEdit;
     Label5: TLabel;
-    GroupBox1: TGroupBox;
+    gbProduto: TGroupBox;
     edtCodProduto: TEdit;
     Label6: TLabel;
     edtDescricao: TEdit;
@@ -38,8 +38,7 @@ type
     Label9: TLabel;
     Label10: TLabel;
     Label11: TLabel;
-    BitBtn1: TBitBtn;
-    BitBtn2: TBitBtn;
+    btbOk: TBitBtn;
     Label12: TLabel;
     edtQuantidade: TEdit;
     edtTotalPedido: TEdit;
@@ -49,7 +48,6 @@ type
     mtProdutoPedidonumeropedido: TIntegerField;
     mtProdutoPedidocodproduto: TIntegerField;
     mtProdutoPedidodescricao: TStringField;
-    mtProdutoPedidoquantidade: TCurrencyField;
     mtProdutoPedidovalorunitario: TCurrencyField;
     mtProdutoPedidovalortotal: TCurrencyField;
     DBGrid1: TDBGrid;
@@ -57,7 +55,12 @@ type
     edtValorUnitario: TEdit;
     edtValorTotal: TEdit;
     btnGravar: TButton;
-    Button1: TButton;
+    btnLimpar: TButton;
+    btbIncluir: TBitBtn;
+    mtProdutoPedidoquantidade: TIntegerField;
+    fdTransacao: TFDTransaction;
+    btnCancelar: TButton;
+    btnCarregar: TButton;
     procedure FormCreate(Sender: TObject);
     procedure edtCodClienteExit(Sender: TObject);
     procedure edtCodProdutoExit(Sender: TObject);
@@ -72,11 +75,27 @@ type
     procedure edtValorUnitarioKeyPress(Sender: TObject; var Key: Char);
     procedure edtValorTotalKeyPress(Sender: TObject; var Key: Char);
     procedure btnGravarClick(Sender: TObject);
+    procedure btnLimparClick(Sender: TObject);
+    procedure btbIncluirClick(Sender: TObject);
+    procedure btbOkClick(Sender: TObject);
+    procedure edtQuantidadeExit(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure DBGrid1Enter(Sender: TObject);
+    procedure DBGrid1Exit(Sender: TObject);
+    procedure DBGrid1KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure edtCodProdutoKeyPress(Sender: TObject; var Key: Char);
+    procedure edtCodProdutoChange(Sender: TObject);
+    procedure btnCancelarClick(Sender: TObject);
+    procedure edtCodClienteChange(Sender: TObject);
+    procedure btnCarregarClick(Sender: TObject);
   private
     { Private declarations }
     APedido: TPedido;
     Acao: TAcao;
     function ConectarBanco: boolean;
+    procedure SetAcao(AAcao: TAcao);
+    procedure TotalPedido;
 
   public
     { Public declarations }
@@ -113,24 +132,160 @@ begin
   Result := Key;
 end;
 
-procedure TfrmPedido.btnGravarClick(Sender: TObject);
+procedure TfrmPedido.btbIncluirClick(Sender: TObject);
 begin
+  edtId.Text := '0';
+  edtCodProduto.SetFocus;
+  LimparProduto;
+end;
 
-  APedido.Numero := StrToInt(edtNumero.Text);
-  APedido.Emissao := Now;
-  APedido.CodCliente := StrToInt(edtCodCliente.Text);
-  APedido.RecordObject;
+procedure TfrmPedido.btbOkClick(Sender: TObject);
+begin
+  if (edtQuantidade.Text = '') or (edtValorUnitario.Text = '0') or (edtValorTotal.Text = '') then
+  begin
+    ShowMessage('Todos os campos devem ser informados');
+    exit;
+  end;
+  if (edtId.Text <> '0') and (edtId.Text <> '') then
+  begin
+    mtProdutoPedido.Locate('id', StrToInt(edtId.Text), []);
+    mtProdutoPedido.Edit;
+  end
+  else
+  begin
+    mtProdutoPedido.Insert;
+    mtProdutoPedidoid.Value := (mtProdutoPedido.RecordCount + 1) * (-1);
+  end;
+  mtProdutoPedidocodproduto.AsInteger := StrToInt(edtCodProduto.Text);
+  mtProdutoPedidodescricao.AsString := edtDescricao.Text;
+  mtProdutoPedidoquantidade.AsCurrency := StrToCurr(edtQuantidade.Text);
+  mtProdutoPedidovalorunitario.AsCurrency := StrToCurr(edtValorUnitario.Text);
+  mtProdutoPedidovalortotal.AsCurrency := StrToCurr(edtValorTotal.Text);
+  mtProdutoPedido.Post;
+  edtId.Text := '';
+  edtCodProduto.Text := '';
+  LimparProduto;
+  TotalPedido;
+  if Acao = Consulta then
+    SetAcao(Alteracao);
+end;
+
+procedure TfrmPedido.btnGravarClick(Sender: TObject);
+var
+  AProdutoPedido: TProdutoPedido;
+begin
+  if (edtCodCliente.Text = '') or (mtProdutoPedido.RecordCount = 0) then
+  begin
+    ShowMessage('Cliente e produtos devem ser informados');
+    exit;
+  end;
+  AProdutoPedido := TProdutoPedido.Create(fdConexao);
+  try
+    fdTransacao.StartTransaction;
+    APedido.Numero := StrToInt(edtNumero.Text);
+    APedido.Emissao := Now;
+    APedido.CodCliente := StrToInt(edtCodCliente.Text);
+    APedido.Total := StrToCurr(edtTotalPedido.Text);
+    APedido.RecordObject;
+    AProdutoPedido.DeleteAllByPedido(APedido.Numero);
+    mtProdutoPedido.First;
+    while not mtProdutoPedido.Eof do
+    begin
+      AProdutoPedido.SetObject(0);
+      AProdutoPedido.NumeroPedido := APedido.Numero;
+      AProdutoPedido.CodProduto := mtProdutoPedidocodproduto.AsInteger;
+      AProdutoPedido.Quantidade := mtProdutoPedidoquantidade.AsInteger;
+      AProdutoPedido.ValorUnitario := mtProdutoPedidovalorunitario.AsCurrency;
+      AProdutoPedido.ValorTotal := mtProdutoPedidovalortotal.AsCurrency;
+      AProdutoPedido.RecordObject;
+      mtProdutoPedido.Next;
+    end;
+
+    fdTransacao.Commit;
+    ShowMessage('Pedido ' + APedido.Numero.ToString + ' gravado com sucesso');
+    btnLimparClick(self);
+  except
+    fdTransacao.Rollback;
+  end;
+
+
+
+end;
+
+procedure TfrmPedido.btnLimparClick(Sender: TObject);
+begin
+  edtNumero.Text := '';
+  edtCodCliente.Text := '';
+  LimparCliente;
+  edtCodProduto.Text := '';
+  LimparProduto;
+  edtTotalPedido.Text := '';
+  mtProdutoPedido.EmptyDataSet;
+  SetAcao(Nada);
 end;
 
 procedure TfrmPedido.btnNovoClick(Sender: TObject);
 begin
+  SetAcao(Inclusao);
   edtCodCliente.SetFocus;
-  edtNumero.Text := 'Novo';
+  edtNumero.Text := '0';
   edtNumero.Enabled := false;
   LimparCliente;
   LimparProduto;
+  mtProdutoPedido.EmptyDataSet;
   APedido := TPedido.Create(fdConexao);
-  Acao := Inclusao;
+
+end;
+
+procedure TfrmPedido.btnCancelarClick(Sender: TObject);
+var
+  sNumero: string;
+  iNumero: integer;
+begin
+  if InputQuery('Cancelamento de Pedido','Número Pedido:',sNumero) then
+  begin
+    try
+      iNumero := StrToInt(sNumero);
+      if APedido.SetObject(iNumero) then
+      begin
+        if MessageDlg('Deseja cancelar o Pedido?', TMsgDlgType.mtConfirmation, [mbYes, mbNo], 1)  = mrYes then
+        begin
+          if APedido.DeleteObject then
+            ShowMessage('Pedido cancelado')
+          else
+            ShowMessage('Erro ao cancelar Pedido');
+        end;
+      end
+      else
+        ShowMessage('Pedido não encontrado');
+
+    except
+      ShowMessage('Deve ser número');
+    end;
+  end;
+end;
+
+procedure TfrmPedido.btnCarregarClick(Sender: TObject);
+var
+  sNumero: string;
+  iNumero: integer;
+begin
+  if InputQuery('Carregar Pedido','Número Pedido:',sNumero) then
+  begin
+    try
+      iNumero := StrToInt(sNumero);
+      if APedido.SetObject(iNumero) then
+      begin
+        edtNumero.Text := sNumero;
+        edtNumeroExit(self);
+      end
+      else
+        ShowMessage('Pedido não encontrado');
+
+    except
+      ShowMessage('Deve ser número');
+    end;
+  end;
 end;
 
 function TfrmPedido.ConectarBanco: boolean;
@@ -194,10 +349,40 @@ begin
   end;
 end;
 
+procedure TfrmPedido.DBGrid1Enter(Sender: TObject);
+begin
+  frmPedido.KeyPreview := false;
+end;
+
+procedure TfrmPedido.DBGrid1Exit(Sender: TObject);
+begin
+  frmPedido.KeyPreview := true;
+end;
+
+procedure TfrmPedido.DBGrid1KeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = VK_DELETE  then
+  begin
+    if MessageDlg('Deseja excluir o produto?', TMsgDlgType.mtConfirmation, [mbYes, mbNo], 1)  = mrYes then
+     begin
+       mtProdutoPedido.Delete;
+       TotalPedido;
+     end;
+  end;
+end;
+
 procedure TfrmPedido.DBGrid1KeyPress(Sender: TObject; var Key: Char);
 begin
   if Key = #13 then
     DBGrid1DblClick(self);
+end;
+
+procedure TfrmPedido.edtCodClienteChange(Sender: TObject);
+begin
+  btnNovo.Visible := Trim(edtCodCliente.Text) = '';
+  btnCarregar.Visible := Trim(edtCodCliente.Text) = '';
+  btnCancelar.Visible := Trim(edtCodCliente.Text) = '';
 end;
 
 procedure TfrmPedido.edtCodClienteExit(Sender: TObject);
@@ -229,6 +414,11 @@ begin
   end;
 end;
 
+procedure TfrmPedido.edtCodProdutoChange(Sender: TObject);
+begin
+  btbOk.enabled :=  edtCodProduto.Text <> '';
+end;
+
 procedure TfrmPedido.edtCodProdutoExit(Sender: TObject);
 var
   AProduto: TProduto;
@@ -255,28 +445,44 @@ begin
   end;
 end;
 
+procedure TfrmPedido.edtCodProdutoKeyPress(Sender: TObject; var Key: Char);
+begin
+  Key := Ret_Numero(Key, edtQuantidade.Text);
+end;
+
 procedure TfrmPedido.edtIdExit(Sender: TObject);
 var
   AProdutoPedido: TProdutoPedido;
 begin
   if Trim(edtId.Text) <> '' then
   begin
-    AProdutoPedido := TProdutoPedido.Create(fdConexao);
-    try
-      if AProdutoPedido.SetObject(StrToInt(Trim(edtId.Text))) then
-      begin
-        edtCodProduto.Text := IntToStr(AProdutoPedido.CodProduto);
-        edtCodProdutoExit(self);
-      end
-      else
-      begin
-        edtCodCliente.Text := '';
-        LimparCliente;
-        ShowMessage('Pedido não encontrado');
-        edtNumero.SetFocus;
+    if mtProdutoPedido.Locate('id', edtId.Text, []) then
+    begin
+      edtCodProduto.Text := mtProdutoPedidocodproduto.ASString;
+      edtDescricao.Text := mtProdutoPedidodescricao.AsString;
+      edtQuantidade.Text := mtProdutoPedidoquantidade.AsString;
+      edtValorUnitario.Text := FormatFloat('#,###,##0.00', mtProdutoPedidovalorunitario.AsCurrency);
+      edtValorTotal.Text := FormatFloat('#,###,##0.00', mtProdutoPedidovalortotal.AsCurrency);
+    end
+    else
+    begin
+      AProdutoPedido := TProdutoPedido.Create(fdConexao);
+      try
+        if AProdutoPedido.SetObject(StrToInt(Trim(edtId.Text))) then
+        begin
+          edtCodProduto.Text := IntToStr(AProdutoPedido.CodProduto);
+          edtCodProdutoExit(self);
+        end
+        else
+        begin
+          edtCodCliente.Text := '';
+          LimparCliente;
+          ShowMessage('Pedido não encontrado');
+          edtNumero.SetFocus;
+        end;
+      finally
+        AProdutoPedido.Free;
       end;
-    finally
-      APedido.Free;
     end;
   end;
 end;
@@ -289,13 +495,15 @@ begin
   if Trim(edtNumero.Text) <> '' then
   begin
     APedido := TPedido.Create(fdConexao);
+    AProdutoPedido := TProdutoPedido.Create(fdConexao);
     try
       if Apedido.SetObject(StrToInt(Trim(edtNumero.Text))) then
       begin
         edtCodCliente.Text := IntToStr(APedido.CodCliente);
         edtCodClienteExit(self);
+        edtTotalPedido.Text := FormatCurr('#,###,##0.00', APedido.Total);
         mtProdutoPedido.EmptyDataSet;
-        AProdutoPedido.Create(fdConexao);
+
         try
           AQuery := TFDQuery.Create(self);
           AProdutoPedido.ListAllByPedido(APedido.Numero, AQuery);
@@ -306,7 +514,7 @@ begin
             mtProdutoPedidonumeropedido.Value := AQuery.FieldByName('numeropedido').AsInteger;
             mtProdutoPedidocodproduto.Value := AQuery.FieldByName('codproduto').AsInteger;
             mtProdutoPedidodescricao.AsString := AQuery.FieldByName('descricao').AsString;
-            mtProdutoPedidoquantidade.Value := AQuery.FieldByName('quantidade').AsCurrency;
+            mtProdutoPedidoquantidade.Value := AQuery.FieldByName('quantidade').AsInteger;
             mtProdutoPedidovalorunitario.Value := AQuery.FieldByName('valorunitario').AsCurrency;
             mtProdutoPedidovalortotal.Value := AQuery.FieldByName('valortotal').AsCurrency;
             mtProdutoPedido.Post;
@@ -315,7 +523,7 @@ begin
         finally
           AQuery.Free;
         end;
-        Acao := Consulta;
+        SetAcao(Consulta);
       end
       else
       begin
@@ -323,13 +531,23 @@ begin
         LimparCliente;
         mtProdutoPedido.EmptyDataSet;
         ShowMessage('Pedido não encontrado');
+        edtNumero.Text := '';
         edtNumero.SetFocus;
-        Acao := Nada;
+        SetAcao(Nada);
       end;
     finally
-      APedido.Free;
+      AProdutoPedido.Free;
     end;
   end;
+end;
+
+procedure TfrmPedido.edtQuantidadeExit(Sender: TObject);
+begin
+  if Trim(edtQuantidade.Text) = '' then
+    edtQuantidade.Text := '0';
+  if Trim(edtValorUnitario.Text) = '' then
+    edtValorUnitario.Text := '0,00';
+  edtValorTotal.Text := FormatCurr('#,###,##0.00', StrToInt(edtQuantidade.Text) * StrToCurr(edtValorUnitario.Text));
 end;
 
 procedure TfrmPedido.edtQuantidadeKeyPress(Sender: TObject; var Key: Char);
@@ -354,7 +572,17 @@ begin
     ShowMessage('Não foi possível conerctar ao banco de dados, verifique');
     Close;
   end;
-  Acao := Nada;
+  APedido := TPedido.Create(fdConexao);
+  SetAcao(Nada);
+end;
+
+procedure TfrmPedido.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  if not (Sender is TDBGrid) then
+    if Key = #13 then begin
+      Key := #0;
+      Perform(WM_NEXTDLGCTL, 0, 0);
+    end;
 end;
 
 procedure TfrmPedido.LimparCliente;
@@ -372,6 +600,37 @@ begin
   edtValorTotal.Text := '';
 end;
 
+
+procedure TfrmPedido.SetAcao(AAcao: TAcao);
+begin
+  Acao := AAcao;
+  edtCodCliente.Enabled := AAcao in [Inclusao, Consulta, Alteracao] ;
+  gbProduto.Enabled := AAcao in [Inclusao, Consulta, Alteracao] ;
+  btnGravar.Enabled := AAcao in [Inclusao, Alteracao] ;
+  btnNovo.Enabled := AAcao in [Nada, Consulta] ;
+  edtNumero.Enabled := AAcao in [Nada, Consulta];
+end;
+
+procedure TfrmPedido.TotalPedido;
+var
+  cTotal: currency;
+  bmRegistro: TBookmark;
+begin
+  cTotal := 0;
+  if mtProdutoPedido.Active then
+  begin
+    bmRegistro := mtProdutoPedido.GetBookmark;
+    mtProdutoPedido.First;
+
+    while not mtProdutoPedido.Eof do
+    begin
+      cTotal := cTotal + mtProdutoPedidovalortotal.Value;
+      mtProdutoPedido.Next;
+    end;
+  end;
+  edtTotalPedido.Text := FormatCurr('#,###,##0.00', cTotal);
+  mtProdutoPedido.GotoBookmark(bmRegistro);
+end;
 
 end.
 
