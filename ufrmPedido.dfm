@@ -64,6 +64,13 @@ object frmPedido: TfrmPedido
     Font.Style = [fsBold]
     ParentFont = False
   end
+  object Label13: TLabel
+    Left = 236
+    Top = 85
+    Width = 43
+    Height = 15
+    Caption = 'Emiss'#227'o'
+  end
   object edtNumero: TEdit
     Left = 8
     Top = 15
@@ -332,6 +339,16 @@ object frmPedido: TfrmPedido
     TabStop = False
     OnClick = btnCarregarClick
   end
+  object dtEmissao: TDateTimePicker
+    Left = 232
+    Top = 99
+    Width = 97
+    Height = 23
+    Date = 45592.000000000000000000
+    Time = 0.657085972219647400
+    Enabled = False
+    TabOrder = 12
+  end
   object fdConexao: TFDConnection
     Params.Strings = (
       'Password=1234'
@@ -340,12 +357,12 @@ object frmPedido: TfrmPedido
       'User_Name=root'
       'Server=localhost')
     Transaction = fdTransacao
-    Left = 430
-    Top = 31
+    Left = 438
+    Top = 15
   end
   object FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink
-    Left = 438
-    Top = 95
+    Left = 430
+    Top = 71
   end
   object mtProdutoPedido: TFDMemTable
     Active = True
@@ -390,8 +407,8 @@ object frmPedido: TfrmPedido
     UpdateOptions.CheckRequired = False
     UpdateOptions.AutoCommitUpdates = True
     StoreDefs = True
-    Left = 304
-    Top = 80
+    Left = 504
+    Top = 8
     object mtProdutoPedidoid: TIntegerField
       DisplayLabel = 'ID'
       DisplayWidth = 3
@@ -434,12 +451,12 @@ object frmPedido: TfrmPedido
   end
   object DataSource1: TDataSource
     DataSet = mtProdutoPedido
-    Left = 360
-    Top = 80
+    Left = 496
+    Top = 64
   end
   object fdTransacao: TFDTransaction
     Connection = fdConexao
-    Left = 352
+    Left = 384
     Top = 16
   end
 end

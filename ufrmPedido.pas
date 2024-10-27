@@ -10,7 +10,7 @@ uses
   FireDAC.Phys.MySQL, FireDAC.Phys.MySQLDef, FireDAC.VCLUI.Wait, Data.DB,
   FireDAC.Comp.Client, Vcl.StdCtrls, Vcl.Buttons, Vcl.Grids, FireDAC.Stan.Param,
   FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet,
-  uPedido, Vcl.DBGrids, Vcl.Mask, System.UITypes;
+  uPedido, Vcl.DBGrids, Vcl.Mask, System.UITypes, Vcl.ComCtrls;
 
 type
   TAcao = (Nada, Consulta, Alteracao, Inclusao);
@@ -61,6 +61,8 @@ type
     fdTransacao: TFDTransaction;
     btnCancelar: TButton;
     btnCarregar: TButton;
+    dtEmissao: TDateTimePicker;
+    Label13: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure edtCodClienteExit(Sender: TObject);
     procedure edtCodProdutoExit(Sender: TObject);
@@ -221,6 +223,7 @@ begin
   LimparProduto;
   edtTotalPedido.Text := '';
   mtProdutoPedido.EmptyDataSet;
+  dtEmissao.DateTime := now;
   SetAcao(Nada);
 end;
 
@@ -501,6 +504,7 @@ begin
       begin
         edtCodCliente.Text := IntToStr(APedido.CodCliente);
         edtCodClienteExit(self);
+        dtEmissao.DateTime := APedido.Emissao;
         edtTotalPedido.Text := FormatCurr('#,###,##0.00', APedido.Total);
         mtProdutoPedido.EmptyDataSet;
 
